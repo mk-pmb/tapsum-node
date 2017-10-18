@@ -1,0 +1,29 @@
+{ "name": "tapsum",
+  "version": "0.1.0",
+  "description": "A bash script to summarize errors from the `tap` package.",
+  "keywords": [],
+
+  "author": "M.K. (https://github.com/mk-pmb)",
+  "homepage": "https://github.com/mk-pmb/tapsum-node/#readme",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/mk-pmb/tapsum-node.git"
+  },
+  "bugs": {
+    "url": "https://github.com/mk-pmb/tapsum-node/issues"
+  },
+  "contributors": [],
+
+  "private": false, "license": "ISC",
+
+  "main": "tapsum.js",
+  "bin": "tapsum.sh",
+  "scripts": { "test": "nodejs test/all.js" },
+  "directories": { "test": "test" },
+
+  "dependencies": {},
+  "devDependencies": {},
+
+
+  "npm vs. BOM = Unexpected token": "-*- coding: UTF-8 -*-"
+}
