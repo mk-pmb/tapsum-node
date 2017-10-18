@@ -16,19 +16,19 @@ A bash script to summarize errors from the `tap` package.
 tapsum: run selected tests, log the result, and summarize it.
 
 Invocation:
-  * $INVO --help
+  * tapsum --help
     Show this summary.
-  * $INVO
+  * tapsum
     Run all tests and show an overall summary.
-  * $INVO 304
+  * tapsum 304
     Run test/304.js and show its error summary.
-  * $INVO --sumerr 304.tap.err
+  * tapsum --sumerr 304.tap.err
     Summarize the errors of test's last recording.
-  * $INVO --sumerr
+  * tapsum --sumerr
     Summarize errors of all recorded test results.
-  * $INVO --sumerr 304.tap.err
+  * tapsum --sumerr 304.tap.err
     Summarize errors of this test's last recording.
-  * $INVO --versions
+  * tapsum --versions
     Show versions of node, npm, linux distro and the git HEAD hash.
 ```
 <!--/include-->
