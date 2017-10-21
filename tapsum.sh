@@ -91,9 +91,8 @@ function tapsum_main () {
 
 function summarize_error_logs () {
   local FAIL_LOGS=( "$@" )
-  [ "$#" == 0 ] && FAIL_LOGS=( *.tap.err )
-  for LOG_FN in "${FAIL_LOGS[@]}"; do
-    sed -nre '
+  [ "$#" == 0 ] && FAIL_LOGS=( {,test/,tests/}*.tap.err )
+  local SUM_SED='
       s~^(\s*)(\S*Error: )~\1! \2~
       /^\s*•/b show
       /^\s*\!/b show
@@ -101,7 +100,23 @@ function summarize_error_logs () {
       : show
         p
       : skip
-      ' -- "$LOG_FN"
+      '
+  local FOUND=
+  local NL=$'\n'
+  for LOG_FN in "${FAIL_LOGS[@]}"; do
+    [ -f "$LOG_FN" ] || continue
+    FOUND="$(sed -nre "$SUM_SED" -- "$LOG_FN")"
+    [ -n "$FOUND" ] || continue
+    LOG_FN="${LOG_FN#tests/}"
+    LOG_FN="${LOG_FN#test/}"
+    LOG_FN="${LOG_FN%.err}"
+    LOG_FN="${LOG_FN%.log}"
+    LOG_FN="${LOG_FN%.tap}"
+    if [ "${#FAIL_LOGS[@]}" -gt 1 ]; then
+      FOUND="@ $LOG_FN:$NL$FOUND"
+      FOUND="${FOUND//$NL/$NL  }"
+    fi
+    echo "$FOUND"
   done
 }
 
