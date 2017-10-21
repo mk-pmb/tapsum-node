@@ -31,16 +31,21 @@ function tapsum_help () {
 }
 
 
+function csed () { LANG=C sed "$@"; }
+function preg_quote () { csed -re 's~[^A-Za-z0-9_]~\\&~g'; }
+function tapsum_chapter_sep () { printf '\n%40s\n' '' | tr ' ' '_' ; }
+
+
 function tapsum_main () {
-  case "$PWD" in
-    */test ) cd ..;;
-  esac
   case "$1" in
     --sumerr ) summarize_error_logs "${@:2}"; return $?;;
     --versions ) summarize_versions; return $?;;
     --help | -h ) tapsum_help; return $?;;
   esac
 
+  case "$PWD" in
+    */test ) cd ..;;
+  esac
   local TEST_FN=
   local TESTS=()
   tapsum_parse_args "$@" || return $?
@@ -49,7 +54,7 @@ function tapsum_main () {
   TAP_BIN="$(nodejs -p "$TAP_BIN")"
   [ -f "$TAP_BIN" ] || return 4$(
     echo 'E: cannot find tap script. "npm i -d" might solve this.' >&2)
-  local BASEDIR_RGX="$(dirname "$PWD" | sed -re 's~[^A-Za-z0-9_]~\\&~g')"
+  local BASEDIR_RGX="$(dirname "$PWD" | preg_quote)"
   local LOG_FN=
   local FAIL_LOGS=()
   for TEST_FN in "${TESTS[@]}"; do
@@ -88,7 +93,15 @@ function summarize_error_logs () {
   local FAIL_LOGS=( "$@" )
   [ "$#" == 0 ] && FAIL_LOGS=( *.tap.err )
   for LOG_FN in "${FAIL_LOGS[@]}"; do
-    grep -Pe '^\s*(·|!) ' "$LOG_FN"
+    sed -nre '
+      s~^(\s*)(\S*Error: )~\1! \2~
+      /^\s*•/b show
+      /^\s*\!/b show
+      b skip
+      : show
+        p
+      : skip
+      ' -- "$LOG_FN"
   done
 }
 
@@ -127,22 +140,24 @@ function tapsum_summarize_log () {
   local LOG_FN="$1"
   TAP_RESULT="$(tail -n 5 -- "$LOG_FN" \
     | grep -Pe '^(not |)ok \d+ - ' | tail -n 1)"
-  case "$TAP_RESULT" in
-    "ok 1 - "* )
-      TAP_RESULT="${TAP_RESULT%% - *}"
-      echo "· $TAP_RESULT"
-      return 0;;
-  esac
+  local OK_RGX='^ok [0-9]+ - '
+  if [[ "$TAP_RESULT" =~ $OK_RGX ]]; then
+    TAP_RESULT="${TAP_RESULT%% - *}"
+    echo "• $TAP_RESULT"
+    return 0
+  fi
 
   tapsum_chapter_sep
-  grep -Pe '^\s+#' -- "$LOG_FN" | tr '\n' '\r' | sed -re 's~\r~\n~g
+  grep -Pe '^\s+#' -- "$LOG_FN" | csed -re '
+    : read_all
+    $!{N;b read_all}
     s~([ \t]+)# Subtest: ([^\n]+)\n\1#? ?failed ([0-9]+) of ([0-9]+) tests|$\
       ~\1\r! \3/\4 failed in \2~g
     s~\n\s+# time=\S+$~~g
     s~\n\s+(# time=\S+\n)~ \1~g
-    ' | sed -re '
+    ' | csed -re '
     /^\s*# failed ([0-9]+ |of )+tests(\s+|#|time=\S+)*$/d
-    s~^[ \t]{4}([ \t]*)# ?~\1· ~g
+    s~^[ \t]{4}([ \t]*)# ?~\1• ~g
     s~^[ \t]{4}([ \t]*)\r~\1~g
     s~\r~«~g;s~\t~»~g
     ' | tee --append -- "$LOG_FN"
@@ -150,13 +165,8 @@ function tapsum_summarize_log () {
 }
 
 
-function tapsum_chapter_sep () {
-    echo; echo '________________________________________'
-}
-
-
 function summarize_versions () {
-  echo -n '· versions: nodejs '
+  echo -n '• versions: nodejs '
   nodejs --version | tr -d '\n'
   echo -n ', npm '
   npm --version | tr -d '\n'
