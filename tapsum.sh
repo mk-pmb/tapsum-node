@@ -64,7 +64,7 @@ function tapsum_main () {
       FAIL_LOGS+=( "$LOG_FN" )
       continue
     fi
-    </dev/null nodejs "$TAP_BIN" "$TEST_FN" 2>&1 | sed -re "
+    </dev/null nodejs "$TAP_BIN" "$TEST_FN" 2>&1 | csed -ure "
       s:$BASEDIR_RGX/:/…/:g" | tee -- "$LOG_FN"
     if tapsum_summarize_log "$LOG_FN"; then
       mv --no-target-directory -- "$LOG_FN" "${LOG_FN%.err}.log"
@@ -93,6 +93,26 @@ function summarize_error_logs () {
   local FAIL_LOGS=( "$@" )
   [ "$#" == 0 ] && FAIL_LOGS=( {,test/,tests/}*.tap.err )
   local SUM_SED='
+      /^ +not ok /N
+      /^( +)not ok\b[^\n]*\n\1 +\-{3}$/{
+        s~\n[ -]+~~
+        : read_more_not_ok
+        /\n +\.{3,}\s*$/!{N;b read_more_not_ok}
+        s~(\n +)(at|stack|source): ?\|?(\1 +[^\n]+)+~~g
+        s~\n +\.{3}$~~
+
+        s~(\n +)found: ([^\n]*)\1wanted: ([^\n]*)\1compare: ([^\n]*|$\
+          )$~\r\1‹\2› \r¬(\4) ‹\3›~
+        s~\r¬\(=(==?)\)~!\1~
+        s~\r¬\(!(==?)\)~=\1~
+        s~^([^\n]+)\r\n *~\1: ~
+        s~\r~~g
+
+        #s~^( {1,16})\1~\1! ~g
+        s~^ +~! ~
+        #s~\n( {1,16})\1(  )~\n\1\2· ~g
+        s~\n +~\n  · ~g
+      }
       s~^(\s*)(\S*Error: )~\1! \2~
       /^\s*•/b show
       /^\s*\!/b show
